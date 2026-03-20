@@ -7,6 +7,11 @@ images/
 facialemotionmodel.json
 training_history.png
 checkpoints/
+label_classes.json
+
+# ── Kaggle output notebooks (output-filled versions, keep off GitHub) ─────────
+kaggle_train_output.ipynb
+*_output.ipynb
 
 # ── Python ───────────────────────────────────────────────────────────────────
 __pycache__/
