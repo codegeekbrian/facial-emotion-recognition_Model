@@ -1,90 +1,63 @@
-# Facial Emotion Recognition — Train Model
+# Facial Emotion Recognition (CNN)
 
-I built a custom CNN to classify facial expressions into **7 emotion categories**:
+A Keras/TensorFlow convolutional neural network that classifies 48×48 grayscale face images into seven emotions. It reaches **91.07% accuracy on a held-out test set of 4,165 images**. This is the emotion model used in [MoodTune](https://github.com/codegeekbrian/moodtune-showcase), a music recommender that reads your facial expression.
+
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
+![Keras](https://img.shields.io/badge/Keras-D00000?style=for-the-badge&logo=keras&logoColor=white)
+
+## Results
+
+| Metric | Value |
+| --- | --- |
+| Test accuracy | **91.07%** |
+| Test loss | 0.2597 |
+| Test images (never seen during training) | 4,165 |
+
+## Emotion classes
+
 `angry` · `disgust` · `fear` · `happy` · `neutral` · `sad` · `surprise`
 
-I trained this model using Kaggle's free GPU (T4 x2) with the [nishchalchandel/raf-db-face-emotion-dataset](https://www.kaggle.com/datasets/nishchalchandel/raf-db-face-emotion-dataset), achieving **78.2% validation accuracy**.
+## Dataset
 
----
+A balanced, grayscale version of the RAF-DB face-emotion dataset, hosted on Kaggle and already split into three folders:
 
-## Project Structure
+| Split | Images |
+| --- | --- |
+| Train | 30,023 |
+| Validation | 7,504 |
+| Test | 4,165 |
 
-```
-Facial_Recogniton_Train_Model/
-├── kaggle_train.ipynb   # Main training notebook — run this on Kaggle
-├── test_model.py        # Run inference on a single image locally
-└── requirements.txt     # Python dependencies
-```
+All images are resized to 48×48 and scaled to the 0–1 range.
 
----
+## Model
 
-## How I Train on Kaggle
+A three-block CNN built with Keras `Sequential`:
 
-I use Kaggle's free GPU instead of training locally because it's significantly faster and I can close my browser while it runs.
+| Stage | Layers |
+| --- | --- |
+| Block 1 | Conv2D (64) → BatchNorm → MaxPool → Dropout 0.25 |
+| Block 2 | Conv2D (128) → BatchNorm → MaxPool → Dropout 0.25 |
+| Block 3 | Conv2D (256) → BatchNorm → MaxPool → Dropout 0.25 |
+| Classifier | Flatten → Dense 512 → BatchNorm → Dropout 0.4 → Dense 256 → Dropout 0.3 → Dense 7 (softmax) |
 
-### Step 1 — Connect this repo to Kaggle
-1. Go to [kaggle.com/code](https://kaggle.com/code) → **New Notebook**
-2. Click **File** → **Link GitHub Account** (one-time setup)
-3. After linking: **File** → **Import Notebook from GitHub** → select this repo → select `kaggle_train.ipynb`
+## Training setup
 
-### Step 2 — Add the dataset
-- Right panel → **Add Data** → search `nishchalchandel raf-db-face-emotion-dataset` → Add
-- It mounts automatically at `/kaggle/input/raf-db-face-emotion-dataset/`
+- **Optimiser:** Adam (learning rate 1e-3), categorical cross-entropy loss, batch size 64
+- **Augmentation:** horizontal flip, rotation (10°), zoom (10%), width and height shifts (10%)
+- **Callbacks:** model checkpointing on validation accuracy, learning-rate reduction on plateau (×0.5, patience 5), early stopping (patience 15, best weights restored)
+- **Evaluation:** the model is chosen using the validation set, and the test set is used once at the end for the final score
+- **Hardware:** trained on a Kaggle GPU (NVIDIA T4)
 
-### Step 3 — Enable GPU
-- Right panel → **Session options** → **Accelerator** → **GPU T4 x2**
+## Output files
 
-### Step 4 — Train offline
-- Click **Save Version** → **Save & Run All (Commit)**
-- I can close my browser — Kaggle keeps running in the background
-- When done, go to the **Output** tab → download `facialemotionmodel.h5` and `label_classes.json`
+Training produces the architecture (`facialemotionmodel.json`), the weights (`facialemotionmodel.weights.h5`), the full saved model (`facialemotionmodel.h5`), and the class order used by the model (`label_classes.json`).
 
----
+## Limitations
 
-## Model Architecture
+- The model sees small 48×48 grayscale faces, so accuracy on live webcam frames in varied lighting and angles will differ from the test-set score.
+- The test set comes from the same dataset as the training data, so it measures performance on similar images, not on any webcam.
 
-I settled on a 3-block CNN after testing several configurations. It consistently outperformed deeper or larger variants on this dataset.
+## Author
 
-| Layer | Details |
-|---|---|
-| Input | 48×48×1 (grayscale) |
-| Conv Block 1 | Conv2D(64) + BatchNorm + MaxPool + Dropout(0.25) → 24×24 |
-| Conv Block 2 | Conv2D(128) + BatchNorm + MaxPool + Dropout(0.25) → 12×12 |
-| Conv Block 3 | Conv2D(256) + BatchNorm + MaxPool + Dropout(0.25) → 6×6 |
-| Dense 1 | Dense(512) + BatchNorm + Dropout(0.4) |
-| Dense 2 | Dense(256) + Dropout(0.3) |
-| Output | Dense(7, softmax) |
-
-- **Optimizer:** Adam (lr=1e-3) with ReduceLROnPlateau
-- **Loss:** Categorical Crossentropy
-- **Epochs:** 100 (with EarlyStopping, patience=15)
-- **Batch size:** 64
-- **Augmentation:** horizontal flip, rotation ±10°, zoom ±10%, shift ±10%
-
----
-
-## Testing the Model Locally
-
-After downloading `facialemotionmodel.h5` and `label_classes.json` from Kaggle:
-
-```bash
-pip install -r requirements.txt
-python test_model.py
-```
-
-Edit `image_path` in `test_model.py` to point to any face image.
-
----
-
-## Requirements
-
-```
-tensorflow
-keras
-pandas
-numpy
-tqdm
-opencv-contrib-python
-scikit-learn
-matplotlib
-```
+Brian Mutembei · [GitHub](https://github.com/codegeekbrian) · [Portfolio](https://codegeekbrian.page.gd)
